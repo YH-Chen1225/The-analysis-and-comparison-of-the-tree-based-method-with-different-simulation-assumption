@@ -19,6 +19,7 @@ For each data generating process:
 
 
 The Table of content
+
 ![image](Table_of_content.jpg)
 
 The full version please check [The-analysis-and-comparison-of-the-tree-based-method-with-different-simulation-assumption.pdf](https://github.com/YH-Chen1225/The-analysis-and-comparison-of-the-tree-based-method-with-different-simulation-assumption/files/10104421/The-analysis-and-comparison-of-the-tree-based-method-with-different-simulation-assumption.pdf)
