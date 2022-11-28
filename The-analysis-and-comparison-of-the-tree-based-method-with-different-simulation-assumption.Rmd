@@ -1,0 +1,1325 @@
+---
+title: "The analysis and comparison of the tree-based method with different simulation assumption"
+author: "Moses Chen"
+date: '2022-08-21'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#1. Introduction.
+Nowadays, machine learning techniques are wildly used in many fields, which also include economics and finance. Therefore, it is necessary to combine our domain knowledge with machine learning skills. In this term paper, there are some powerful and useful algorithms such as decision tree, and pruned tree and some ensemble methods such as boosting and bagging would be introduced. Moreover, some analysis methods such as ROC curve and Confusion matrix would include as well. Additionally, this term paper can be separated into two main portions. In the first portion, each algorithm would be introduced one by one with a clear calculation explanation and their properties discussion. In the second portion, there is a simulation study that tries to partially replicate the result of (Utami, I.T., et al,2014). In the simulation process, there are two simulation ways with three different cases that would be provided.
+
+(Note! The first portion, Part A, is in the pdf file(with clear explanation), because some math notation and table is hard to present in Rmd file, so please check the pdf file for the introduction of algorithms)
+Here I would summarize the content of each algorithm from pdf file.
+
+#a. Decision Tree
+1. In the past, the inducer of decision tree that people use is MC4(MLC++ C4.5), which is introduced by Kohavi et al (1997), and it is a top-down tree. Now, people use a slightly different inducer called "CART". The difference between them is CART can support the case that target variable is continuous variable.(Detailed please check page 3 and 4 in pdf file)
+#a.1(The process of decision tree)
+$$
+Defined \ X_i\ (train\ vector)\ \in R^n\ for\ i\ =\ 1.2...I\ and\ y\ (label factor)\in y^t\ and\ \theta =\ (j,t_m)\ means\ the\ candidate\ split\
+\\ with\ predictors\ j\ at\ node\ m\ and\ the\ threshold\ t_m\ at\ node\ m.\ The\ data\ at\ node\ m\ can\ be\ state\ as\ Q_m\ with\ n_m\ obs\\
+$$
+$$
+\\step1.\quad Q_m^{left}(\theta)\ =\ (x,y)\ conditionally\ on\ x_j<t_m\ and\ Q_m^{right}(\theta)\ = Q_m \notin Q_m^{left}(\theta)\\
+$$
+$$
+step2.\quad Calculate\ the\ G(Q_m,\theta) =\ n_m^{left}/n_m\ *\ H(Q_m^{left}(\theta))\ +\ n_m^{right}/n_m\ *\ H(Q_m^{right}(\theta))\\
+$$
+Note:H is loss function
+$$
+step3.\quad select\ parameter\ \theta^* =\ argmin\ G(Q_m,\theta)\\
+$$
+$$
+step4.\quad Recursive\ the\ Q_m^{left}(\theta)\ and\ the\  Q_m^{right}(\theta)\ until\ the\ obs\ in\ the\ terminal\ node\ =1\ or \ smaller\ than\ the\ number\ of\ \\terminal\ nodes\ threshold\ and\ find\ the\ result\ of\ 
+prediction.
+$$
+2.From the upper formula, function H means loss function. The loss function of Decision Tree can be separated to two ways, classification and regression.
+For the classification, the loss function can be "Gini index" or "Entropy"
+$$
+\sum_kP_{mk}*(1-P_{mk})\ for\ P_{mk} = 1/n_m\ * \sum_{y \in Q_m}I(y=k)\ (Gini\ index)
+$$
+$$
+-\sum_kP_{mk}*log(P_{mk})\ for\ P_{mk} = 1/n_m\ * \sum_{y \in Q_m}I(y=k)\ (Entropy)
+$$
+
+For the regression, the loss function can be "RSS" or "Poisson Deviance"
+$$
+1/n_m\ *\ \sum_{y\in Q_m} (y_i - \bar y_m)^2\ for\ i\ =\ 1,2...n\ (RSS) 
+$$
+
+$$
+1/n_m\ *\ \sum_{y\in Q_m} (y*log(y/\bar y_m)\ -\ y\ +\ y_m)\ for\ i\ = 1,2...n\ (Poisson\ Devian)
+$$
+
+3.Decision Tree has strong interpretability but maybe weak prediction accuracy rate, which will be shown in the following simulation result
+4.There is a practical calculation process of decision tree that show in the pdf file page 4~5, pls check it.
+
+#b. Pruned Tree
+1. The reason why we need to pruned the tree is because we want to avoid over-fitting problem. When we grow the full tree, it may also take in to account the error or noise, which would makes the accuracy rate of training data be very large but that for test data would be low.
+2.The formula for pruning:
+$$
+R_a = R(T)+\alpha*\lvert T \lvert\ 
+$$
+R(T) = weighted RSS and absolute value of T means the number of node. Besides, "alpha" is the penalized term. If alpha = 1, then the tree would be relatively small. In contrast, if alpha =0 the tree will be relatively large.
+
+
+3. In the rpart package there is a parameter similar to alpha, Which is "cp". 
+$$
+R_{cp} = R(T)+cp*\lvert T \lvert\ * R(T_0) 
+$$
+R(T0) means the RSS when there is no split. cp here is easier to control compared with alpha 
+because it is unitless. If cp = 1, then we will not have any split in this tree because we cannot make any improvement for Rcp, even if we find the best dividing way which makes R(T) = 0, our Rcp will still equal to R(T0). In contrast, if cp = 0, then we can grow the tree as big as we want.
+4.There are some other variable can be used for pruning, which include min_split(The threshold of the minimum number of individuals in this node to let this node split further and default is 20), min_bucket(The minimum number of individuals in the terminal node) and max_depth(The maximum layer of the decision tree). (the information is written on page 6 table 3)
+
+#c. Bagging
+1.The reason why we need bagging is that we want to avoid high variance from only one tree.
+2.Bagging means randomly draw the observation from original dataset, each time's drawing is iid.
+3.After that, using loss function(RSS, poisson deviance, Gini index and entropy) to grow a full tree.
+4.Finally vote for the final prediction
+5.The number of tree we grow would not cause overfitting
+6.During the process, some individuals will duplicate in subsample but it does not matter in bagging. 
+7.Breiman. L (2001) mentioned that the accuracy rate of the infinity number of trees should converge. Therefore, it seems unnecessary to use a very large number of trees and we can have a similar outcome
+8. I conducted a similar experiment in the last chunck of this files(can be corrsponded to figure 1 in pdf file), which shows that there is a upward and converging trend when the number of tree went up.
+9.Table 4 in pdf file has a short conclusion, pls check it.
+
+#d. Random Forests
+1. The difference between bagging and random forests is that at each iteration, random forest would not take into account all predictors as candidate for the split but only take part of it for split.It is because if we consider all the predictors, maybe there are some predictors with a much stronger ability to make predictions than others. Consequently, these predictors are applied in almost every tree we establish, and therefore these trees are highly correlated. Finally, it may still have high variance because of a strong correlation between trees.
+2. Large number for tree in random forest can makes the calculation process slow.
+
+#e. Boosting
+1.The main difference between boosting and bagging is each draw for the bagging method is independent and identically distributed and conversely, each draw for boosting method is dependent.
+2.Moreover, for boosting method, the weight of individuals is different and the subsample we obtain mainly depends on the error of the previous tree.
+3.Because the misclassify individuals from the previous tree would be cared for more, so each tree is like compensation for the previous tree.
+4.Normally, the size of a tree in boosting method is quite small, even just a stump which is only one split and two leaves (Iba & Langley, 1992).
+5.For each step, we can also control the shrinkage parameter 𝝺 to force the model to improve slower. The𝝺will be set as between 0.01 to 0.001 usually.
+6.we also need to be careful that too many trees for boosting method may cause overfitting, which is different from bagging.
+7.If we set up too many trees for boosting, it may cause overfitting.
+
+
+
+
+#Install all the needed packages in the following chunck
+```{r}
+install.packages("randomForest")
+install.packages('adabag')
+install.packages('forecast')
+install.packages('fastAdaboost')
+install.packages('tictoc')
+library(rpart)
+library(MASS)
+library(randomForest)
+library(adabag)
+library(partykit)
+library(mlr)
+library(devtools)
+library(forecast)
+library(pROC)
+library(cvms)
+library(tidyverse)
+library(fastAdaboost)
+library(tictoc)
+```
+
+#f. adaboost
+1.Adaboost is the abbreviation of adaptive boosting, it will consider the error of the previous tree and makes compensation in the following tree.
+2.In the beginning, the weight of each tree is the same. For instance, if we have 8 rows, then the weight of each row is ⅛. Then we used either RSS, Gini index, Entropy, etc to create the first stump (all the trees in Adaboost is stumps).
+3.After that, there are two things we need to care about, 1.how important this tree is (it depends on how good the prediction outcome). 2. How to change the weight of each observation (it depends on which observation is misclassified). 
+
+4.How important of the tree depends on alpha, the formula is
+$$
+\alpha = 1/2\ *\ ln[(1-total\ error\ rate)/total\ error\ rate]
+$$
+5.Reweight depends on if it is correctly classified or not
+a. if correctly classified, new weight = old weight ∗ exp(-alpha) 
+$$
+New\ Weight\ = Old\ Weight\ * e^{-\alpha} \quad for\  the\ correctly\ classified\ observations\
+$$
+b. if wrongly 
+$$
+New\ Weight\ = Old\ Weight\ * e^{\alpha} \quad for\  the\ correctly\ misclassified\ observations\
+$$
+
+
+6.Please check page11 table6,7,8 for the detail calculation explanation
+#Alpha graph for Ada boost explanation(corresponding to the figure 2,3,4 in pdf file)
+```{r}
+#alpha graph
+total_error <- seq(0,1,by=0.005)
+alpha <- c()
+alpha_cal <- function(total_error){
+  alpha <- 1/2*log((1-total_error)/total_error)#alpha function
+}
+alpha <- alpha_cal(total_error)
+plot(total_error,alpha)
+#wrongly classified graph
+new_weight_01 <- exp(alpha)
+plot(alpha,new_weight_01)
+#correctly classified graph
+new_weight_02 <- exp(-alpha)
+plot(alpha,new_weight_02)
+```
+(For alpha graph)As we can observe, if the error rate is closed to 0.5, it means that the capability of predicting this tree is similar to guessing so alpha tends to 0. If the error rate is closed to 1, it means that this tree tends to predict in the exact opposite way so the alpha tends to minus infinity. On the other hand, if it almost predicts everything correct, then the alpha tends to infinity. During the
+final voting process, this tree will be very important if it has a high alpha value. 
+
+(From misclassified re-weight graph)As we can observe, if an important tree (large alpha) misclassified an individual, then the weight of that individual would increase a lot. In contrast, if a tree makes many mistakes, then the weight of misclassified individuals from that tree will almost not change.
+
+(From correctly classified re-weight graph)As we can observe, if an important tree correctly classified the individual, then the correctly classified individual would barely change its weight. In contrast, if a tree makes many mistakes, but it makes a correct classification for this individual, then that individual will increase its weights significantly. 
+
+#(Note, please check the table5 on page 10 of pdf file, there is a conclusion for each step of adaboost)
+#(Note, there is a practical calculation explanation of adaboost in page 11, 12, please check it.)
+
+After we have the weight of each obs, we would standardize it to let the sum of weight become 1 and we randomly choose number from 0 to 1. The number of the chosen number would be the same as sample size. The observations which has corresponding weight would be chosen as the sub-sample for the next stump. For example, I have five observations, the weight for each of them is 0.2. I randomly choose 0.1,0.2,0.3,0.4,0.5, then first obs would be choose twice, and second obs would be choose twice and third obs would be choice once. We still have five obs in the new dataset but the composition is different. 
+By this iteration, we would have many stump. Finally, if it is a classification problem with "yes or "no", we would have two groups(one vote for yes and one vote for no). We sum the alpha value for each group,and choose the prediction result from higher alpha groups as final prediction.
+
+In general, because the boosting method would boost the model according to the misclassified observations, so the boosting method would be very sensitive to outliers or noise (because usually outliers are misclassified). In contrast, Breiman. L (2001) states that random forest is 
+relatively robust to noise or outliers, so compare with random forest, Adaboost has a higher requirement with the dataset. Khoshgoftaar, T.M. (2011) also mentions that the bagging method is generally better than boosting in the environment with noise. Besides, Adaboost needs to reweight each observation at each iteration, so usually, it is more time-consuming than random forest (Breiman. L, 2001).
+
+
+#Simulation study
+The following portion will partially replicate the result from (Utami, I.T., et al, 2014). Utami, I.T., et al (2014) use three kinds of data generating processes to test the capability of a decision tree, bagging method, support vector machine(SVM) with linear kernel, SVM with the polynomial kernel, and SVM with Radical kernel. However, to deepen the study of the tree-based method. SVM will not be discussed in this term paper but the bagging boosting method and a pruned tree will be discussed instead. Here, I will use a random forest to represent the bagging method, and 50 trees and 500 trees will be tested. For pruning a tree, because it is very time-consuming, I will only prune the tree by the complexity parameter (CP) value. For boosting method, Adaboost will be discussed and there are 100 stumps will be used. Besides, after using DGP, Utami, I.T., et al (2014) create 1200 individuals and used 70% of it as training data and 30% of the dataset as test data. Next, Utami, I.T., et al (2014) totally simulate it 5000 times and calculate the mean of misclassification and standard error for each algorithm. But here I will partially modify the rule. I will simulate once but with 50000 total observations and simulate 1000 times with only 1200 individuals like what the authors did in the paper. Finally, compare the result with the same case but different simulation way and with the result between different cases.
+
+
+
+#Case one(perfect linearly separable dataset)
+#Mutivariate normal distribution dataset from Utami, I.T., et al (2014)
+The case 1 dataset follow the multivariate normal distribution, Utami,I.T.,et al(2014) set up the parameter like following:
+
+$$
+\mu_1 = 
+\begin{bmatrix}
+2\\
+2
+\end{bmatrix}\
+
+\mu_2 = 
+\begin{bmatrix}
+8\\
+8
+\end{bmatrix}\
+
+\sigma_1 = \sigma_2= 
+\begin{bmatrix}
+2 & 0\\
+0 & 2
+\end{bmatrix}\
+
+$$
+It means that we only have two classes, which are 1 and -1 and we have two explanatory variables. μ1 is the mean for class 1 and μ2 is the class for -1 and they have the same covariance matrix. Each class has 600 individuals, therefore we have a total of 1200 individuals in the dataset.
+
+Here I want to visualize the dataset with 1200 obs which following the assumption in case one from Utami,I.T., et al(2014)
+```{r}
+set.seed(666)
+sample_size <- 600                                       
+sample_meanvector <- c(2, 2)                                   
+sample_covariance_matrix <- matrix(c(2, 0, 0, 2),
+                                   ncol = 2)
+
+# create bivariate normal distribution
+sample_distribution <- mvrnorm(n = sample_size,
+                               mu = sample_meanvector, 
+                               Sigma = sample_covariance_matrix)
+
+head(sample_distribution)
+
+positive <- data.frame(sample_distribution)
+positive['y'] <- rep(1,600)
+
+sample_size <- 600                                       
+sample_meanvector <- c(8, 8)                                   
+sample_covariance_matrix <- matrix(c(2, 0, 0, 2),
+                                   ncol = 2)
+sample_minus <- mvrnorm(n = sample_size,
+                               mu = sample_meanvector, 
+                               Sigma = sample_covariance_matrix)
+head(sample_minus)
+negative <- data.frame(sample_minus)
+negative['y'] <- rep(-1,600)
+data <- rbind(positive,negative)
+
+
+#data['y'] <- as.factor(data['y'])
+
+###############Plot the data(corresponding to the figure 5 in term paper)
+library(ggplot2)
+ggplot(data = data, aes(x=X1, y=X2))+
+  geom_point(aes(shape = factor(y),color = factor(y)))+
+  labs(shape = 'y',color = 'y')+
+  ggtitle("Distribution in case one")
+```
+As we can observe from figure 5, the case1 dataset can be separated by a straight line
+
+
+#Data generating process for once simulation with 50000 obs in case one
+```{r}
+
+dgp_01 <- function(mean1,mean2){
+  sample_size <- 25000                                       
+  sample_meanvector <- c(mean1, mean1)                                   
+  sample_covariance_matrix <- matrix(c(2, 0, 0, 2),
+                                     ncol = 2)
+  sample_distribution <- mvrnorm(n = sample_size,
+                                 mu = sample_meanvector, 
+                                 Sigma = sample_covariance_matrix)
+  positive <- data.frame(sample_distribution)
+  positive['y'] <- rep(1,25000)
+  sample_meanvector <- c(mean2, mean2)#just need to change the mean, all the other are the same
+  sample_minus <- mvrnorm(n = sample_size,
+                          mu = sample_meanvector, 
+                          Sigma = sample_covariance_matrix)
+  negative <- data.frame(sample_minus)
+  negative['y'] <- rep(-1,25000)
+  data <- rbind(positive,negative)
+}
+```
+
+# Once simulation with 50000 obs 70% train 30% test
+```{r}
+set.seed(123)
+data_roc <- dgp_01(2,8)
+sample <- sample.int(n = nrow(data_roc),size = floor(0.7*nrow(data_roc)),replace = F)
+train <- data_roc[sample,]
+test <- data_roc[-sample,]
+#decision tree
+rpart_train <- rpart(y ~ .,data = train, control = c(cp = 0, minsplit = 0), method ="class")
+rpart_predict <- predict(rpart_train,test,type = "prob")
+rpart_predict_cl <- predict(rpart_train,test, type = 'class')
+prob <- rpart_predict[,2]
+
+#random forest_50
+rf_train_50 <- randomForest(factor(y) ~ . , data = train, 
+                            mtry = 2 ,ntree = 50)
+rf_predict_50 <- predict(rf_train_50,test,type = 'prob')
+rf_predict_50_cl <- predict(rf_train_50,test)
+prob_rf <- rf_predict_50[,2]
+#random forest_500
+rf_train_500 <- randomForest(factor(y) ~ . , data = train, 
+                            mtry = 2 ,ntree = 500)
+rf_predict_500 <- predict(rf_train_500,test,type = 'prob')
+rf_predict_500_cl <- predict(rf_train_500,test)
+prob_rf_500 <- rf_predict_500[,2]
+
+#adaboost
+train$y <- as.factor(train$y)#Need to change y as factor in advance
+ada_train <- boosting(y ~ ., train, boos=TRUE, mfinal=100)#Create 100 tree and using the weight to drawn
+ada_predict <- predict(ada_train,test)
+ada_predict_cl <- ada_predict$class 
+prob_ada <- ada_predict$prob[,2]
+#prune_tree
+model_pruned <- prune(rpart_train,cp=rpart_train$cptable[which.min(rpart_train$cptable[,"xerror"]),"CP"])
+pruned_predict <- predict(model_pruned,test,type = 'prob')
+pruned_predict_cl <- predict(model_pruned,test,type = 'class')
+prob_pruned <- pruned_predict[,2]
+```
+
+####Plot the ROC graph here(Corresponding to the figure 8 in pdf file)
+```{r}
+plot(roc(test$y,prob,levels = c(-1,1),direction = "<",identity.lty = 3),print.auc = TRUE, col = "blue",identity.lty = 2,
+    grid = TRUE,lwd = 4,xlim = c(1,0))
+plot(roc(test$y, prob_rf,levels = c(-1,1),direction = "<"), print.auc = TRUE,
+                 col = "green", print.auc.y = .4, add = TRUE,lty=2,identity.lty = 2,lwd = 2)
+plot(roc(test$y, prob_ada,levels = c(-1,1),direction = "<"), print.auc = TRUE,
+     col = "red", print.auc.y = .3, add = TRUE,lty=3,identity.lty = 2,lwd = 2)
+plot(roc(test$y, prob_pruned,levels = c(-1,1),direction = "<"), print.auc = TRUE,
+     col = "black", print.auc.y = .2, add = TRUE,lty=4,identity.lty = 2,lwd = 4)
+plot(roc(test$y, prob_rf_500,levels = c(-1,1),direction = "<"), print.auc = TRUE,
+     col = "brown", print.auc.y = .1, add = TRUE,lty=5,identity.lty = 2,lwd = 2)
+legend("topright", c("DT", "RF50","Ada","Pruned",'RF500'), lty = c(1,2,3,4,5), 
+       col = c("blue", "green",'red','black','brown'), bty="n", lwd = c(4,2,2,4,2),inset=c(0,0.05),y.intersp = 0.7)
+title('ROC Curve', line = 2.5)
+```
+Here shows the result of 50000 observations with once simulation. Here sensitivity means “true positive rate” and specificity means “true negative rate”. In order to understand the logic behind ROC curve, we need to know the concept behind classification algorithm is that we 
+would obtain two probability as prediction outcome such as p and 1-p. Assuming p is for positive cases and 1-p is for negative cases. Now we need to define a threshold to determine our result. The threshold can differ from different fields. For some specific field, the threshold 
+needs to be very strict, such as medical test. For instance, even the probability for getting a cancer is 0.3, but that patient may still be classified as positive. Going back to the ROC curve explanation, we can start from the bottom left point, where specificity = 1. It means that the threshold needs to let all the negative cases be correctly classified. In that scenario, it would be very hard to correctly classified all positive cases because some of them may be classified as negative. After that, it would go to the upper-right direction. In this process, the threshold would be eased and finally, there is no need to classified any negative case correctly (specificity = 0), so all the positive cases would definitely be classified correctly. From figure 8 we can find that almost all algorithms can classify all the individuals correctly even in the very strict threshold. Moreover, AUC means “area under the curve”. If AUC =1 means that exist at least one threshold can correctly classify all the positive and negative cases. If AUC = 0.5, it means the prediction outcome is similar to guessing. If AUC lower than 0.5, it means the prediction is on the opposite way. Despite of the fact that DT (decision tree) and pruned tree have a little bit lower number of AUC, but they still perform very well.
+
+####Plot the confusion matrix here(Corresponding to the figure 9,10,11,12,13 in term paper)
+```{r}
+confusion_matrix_train_tree <- table(actual = test$y, predicted = rpart_predict_cl)
+options(repr.plot.res = 250, repr.plot.height = 5, repr.plot.width = 5) 
+confusion_matrix_train_rf50 <- table(actual = test$y, predicted = rf_predict_50_cl)
+options(repr.plot.res = 250, repr.plot.height = 5, repr.plot.width = 5) 
+confusion_matrix_train_rf500 <- table(actual = test$y, predicted = rf_predict_500_cl)
+options(repr.plot.res = 250, repr.plot.height = 5, repr.plot.width = 5) 
+confusion_matrix_train_prune <- table(actual = test$y, predicted = pruned_predict_cl)
+options(repr.plot.res = 250, repr.plot.height = 5, repr.plot.width = 5) 
+confusion_matrix_train_ada <- table(actual = test$y, predicted = ada_predict_cl)
+options(repr.plot.res = 250, repr.plot.height = 5, repr.plot.width = 5) 
+
+suppressWarnings(
+  plot_confusion_matrix(as_tibble(confusion_matrix_train_tree), 
+                        target_col = "actual", 
+                        prediction_col = "predicted",
+                        counts_col = "n") +
+    ggtitle("Confusion matrix of DT ")
+)
+
+suppressWarnings(
+  plot_confusion_matrix(as_tibble(confusion_matrix_train_prune), 
+                        target_col = "actual", 
+                        prediction_col = "predicted",
+                        counts_col = "n") +
+    ggtitle("Confusion matrix of Pruned")
+)
+
+suppressWarnings(
+  plot_confusion_matrix(as_tibble(confusion_matrix_train_rf50), 
+                        target_col = "actual", 
+                        prediction_col = "predicted",
+                        counts_col = "n") +
+    ggtitle("Confusion matrix of rf50")
+)
+
+suppressWarnings(
+  plot_confusion_matrix(as_tibble(confusion_matrix_train_rf500), 
+                        target_col = "actual", 
+                        prediction_col = "predicted",
+                        counts_col = "n") +
+    ggtitle("Confusion matrix of rf500")
+)
+
+suppressWarnings(
+  plot_confusion_matrix(as_tibble(confusion_matrix_train_ada), 
+                        target_col = "actual", 
+                        prediction_col = "predicted",
+                        counts_col = "n") +
+    ggtitle("Confusion matrix of ada")
+)
+```
+To be more specific, from figure 9 and figure 10, we know that decision trees and pruned trees only have 28 and 26 misclassified cases from 50000 individuals. From figure 11, figure 12 and figure 13, it shows that only 25, 27, and 27 misclassified cases for rf50, rf500, and Ada 
+respectively. In conclusion, all the algorithms perform very well in case one once simulation.
+
+
+
+####Now change it to 1200 sample size for 1000 times simulation
+```{r}
+dgp_01 <- function(mean1,mean2){
+  sample_size <- 600                                      
+  sample_meanvector <- c(mean1, mean1)                                   
+  sample_covariance_matrix <- matrix(c(2, 0, 0, 2),
+                                     ncol = 2)
+  sample_distribution <- mvrnorm(n = sample_size,
+                                 mu = sample_meanvector, 
+                                 Sigma = sample_covariance_matrix)
+  positive <- data.frame(sample_distribution)
+  positive['y'] <- rep(1,600)
+  sample_meanvector <- c(mean2, mean2)#just need to change the mean, all the other are the same
+  sample_minus <- mvrnorm(n = sample_size,
+                          mu = sample_meanvector, 
+                          Sigma = sample_covariance_matrix)
+  negative <- data.frame(sample_minus)
+  negative['y'] <- rep(-1,600)
+  data <- rbind(positive,negative)
+}
+```
+
+
+### 1000 times simulation for case one with 1200 obs
+```{r}
+T_iter <- 1000
+mis_class_tree <- c()
+mis_class_prune <- c()
+mis_class_ada <- c()
+mis_class_rf_50 <- c()
+mis_class_rf_500 <- c()
+for (t in 1:T_iter){
+  data <- dgp_01(2,8)
+  sample <- sample.int(n = nrow(data), size = floor(.7*nrow(data)), replace = F)
+  train <- data[sample, ]
+  test  <- data[-sample, ]
+  #Decision Tree
+  rpart_train <- rpart(y ~ .,data = train, control = c(cp = 0, minsplit = 0))
+  rpart_predict <- predict(rpart_train,test)
+  #Random Forest_50
+  rf_train_50 <- randomForest(factor(y) ~ . , data = train, 
+                              mtry = 2 ,ntree = 50)# take all the predictors as sampled
+  rf_predict_50 <- predict(rf_train_50,test)
+  #Random Forest_500
+  rf_train_500 <- randomForest(factor(y) ~ . , data = train, 
+                              mtry = 2 ,ntree = 500)# take all the predictors as sampled
+  rf_predict_500 <- predict(rf_train_500,test)
+  #Adaboost
+  train$y <- as.factor(train$y)#Need to change y as factor in advance
+  ada_train <- boosting(y ~ ., train, boos=TRUE, mfinal=100)#Create 100 tree and using the weight to drawn
+  ada_predict <- predict(ada_train,test)
+  ada_predict$class
+  #Pruned Tree
+  d.tree.param <- makeClassifTask(
+    data = train, 
+    target="y")
+  
+  param_grid_multi <- makeParamSet( 
+    makeNumericParam("cp", lower = 0.001, upper = 0.01))
+  
+  control_grid = makeTuneControlGrid()
+  resample = makeResampleDesc("CV", iters = 2L)
+  measure = acc
+  
+  dt_tuneparam <- tuneParams(learner="classif.rpart", 
+                             task=d.tree.param, 
+                             resampling = resample,
+                             measures = measure,
+                             par.set=param_grid_multi, 
+                             control=control_grid, 
+                             show.info = TRUE)
+  best_parameters = setHyperPars(
+    makeLearner("classif.rpart"), 
+    par.vals = dt_tuneparam$x
+  )
+  
+  
+  best_model = train(best_parameters, d.tree.param)
+  test$y <- as.factor(test$y)
+  d.tree.mlr.test <- makeClassifTask(
+    data=test, 
+    target="y")
+  results <- predict(best_model, task = d.tree.mlr.test)$data
+  accuracy_prune <- mean(results$response == results$truth)
+  
+  accuracy_tree <- c()
+  accuracy_rf_50 <- c()
+  accuracy_rf_500<-c()
+  accuracy_ada<-c()
+  
+  
+  for (i in 1:360){
+    if (rpart_predict[i] == test[i,'y']){
+      accuracy_tree[i] <- 1}
+    else{accuracy_tree[i] <- 0
+    }
+    if (rf_predict_50[i] == test[i,"y"]){
+      accuracy_rf_50[i] <- 1}
+    else{accuracy_rf_50[i] <- 0}
+    if (ada_predict$class[i] == test[i,"y"]){
+      accuracy_ada[i] <- 1}
+    else{accuracy_ada[i] <- 0}
+    if (rf_predict_500[i] == test[i,"y"]){
+      accuracy_rf_500[i] <- 1}
+    else{accuracy_rf_500[i]<-0}
+    }
+  
+  accuracy_rate_tree <- mean(accuracy_tree)
+  mis_class_tree[t] <- 1-accuracy_rate_tree
+  accuracy_rate_rf <- mean(accuracy_rf_50)
+  mis_class_rf_50[t] <- 1-accuracy_rate_rf
+  accuracy_rate_ada <- mean(accuracy_ada)
+  mis_class_ada[t] <- 1-accuracy_rate_ada
+  accuracy_rate_rf_500 <- mean(accuracy_rf_500)
+  mis_class_rf_500[t] <- 1-accuracy_rate_rf_500
+  mis_class_prune[t] <- 1-accuracy_prune
+}
+
+```
+
+
+
+#simulation result in case one with box plot and table (Corresponding to figure 14 and table 9 in the pdf file)
+```{r}
+
+boxplot(mis_class_tree, mis_class_rf_50, mis_class_rf_500,mis_class_ada,
+        mis_class_prune,names = c('DT','RF50','RF500','Ada','pruned'),
+        col=c('green','blue','red','brown','yellow'),ylim = c(0,0.07))
+title('simulation result')
+```
+
+```{r}
+mean(mis_class_tree)
+mean(mis_class_rf_50)
+mean(mis_class_rf_500)
+mean(mis_class_ada)
+mean(mis_class_prune)
+sd(mis_class_tree)
+sd(mis_class_rf_50)
+sd(mis_class_rf_500)
+sd(mis_class_ada)
+sd(mis_class_prune)
+```
+In 1000 times simulation, DT seems has a little bit higher inaccuracy rate compare with other algorithms. We need to take care that although DT has strong interpretability, other algorithms may have a bit more accurate prediction results in a very simple dataset. Besides that, the decision tree also has a larger standard deviation. In other words, DT can be more unstable than other algorithms as well. This issue will be augmented in the following cases 2 and case3. Comparing my result with the result from (Utami, I.T., et al, 2014), the misclassification rate of my decision tree is much larger than the paper’s one, which is 0.44%. I think there are three main reasons. Firstly, the decision tree in the (Utami, I.T., et al, 2014) is probably the pruned tree instead of the full tree. In contrast, when I conduct the simulation, I forced the 
+tree to grow as big as it can. In other words, there is no penalized term in my decision tree model. Furthermore, the misclassification rate of DT on paper is even lower than that of my pruned tree. My guessing is because I only take the complexity parameter into account, but there are still other parameters, such as min split and max depth, that can be applied to pruning. Therefore, the misclassification rate can decrease further. Secondly, probably because we do not have the same seed, so the outcome is different. Thirdly, the authors iterate it for 5000 times but I iterate 1000 times, which may also cause the difference. Additionally, my random forest prediction outcome is similar to the result in the paper. There is only a 0.01% difference between my rf50 and bagging 50 in the paper and roughly 0.1 % difference between rf500 and bagging 500 in the paper. Finally, Adaboost has the best performance among these algorithms, which has only roughly a 0.31% misclassification rate on average.
+
+#Case two(non-perfect linearly separable dataset)
+#Mutivariate normal distribution dataset from Utami, I.T., et al (2014)
+The case 2 dataset follow the multivariate normal distribution, and Utami,I.T.,et al(2014) set up the parameter like following:
+
+$$
+\mu_1 = 
+\begin{bmatrix}
+2\\
+2
+\end{bmatrix}\
+
+\mu_2 = 
+\begin{bmatrix}
+3\\
+3
+\end{bmatrix}\
+
+\sigma_1 = \sigma_2= 
+\begin{bmatrix}
+2 & 0\\
+0 & 2
+\end{bmatrix}\
+
+$$
+There are still 600 individuals for +1 and 600 individuals for -1. In this case, the individuals can be linear separable but not perfectly separated.
+
+Here I want to visualize the dataset with 1200 obs which following the assumption in case two from Utami,I.T., et al(2014)
+```{r}
+set.seed(666)
+sample_size <- 600                                       
+sample_meanvector <- c(2, 2)                                   
+sample_covariance_matrix <- matrix(c(2, 0, 0, 2),
+                                   ncol = 2)
+
+# create bivariate normal distribution
+positive_distribution <- mvrnorm(n = sample_size,
+                               mu = sample_meanvector, 
+                               Sigma = sample_covariance_matrix)
+
+
+positive <- data.frame(positive_distribution)
+positive['y'] <- rep(1,600)
+
+sample_size <- 600                                       
+sample_meanvector <- c(3, 3)                                   
+sample_covariance_matrix <- matrix(c(2, 0, 0, 2),
+                                   ncol = 2)
+sample_minus <- mvrnorm(n = sample_size,
+                        mu = sample_meanvector, 
+                        Sigma = sample_covariance_matrix)
+
+negative <- data.frame(sample_minus)
+negative['y'] <- rep(-1,600)
+data_2 <- rbind(positive,negative)
+
+```
+
+#plot the distribution of data again for case 2(corresponding to figure 6 in the term paper)
+```{r}
+library(ggplot2)
+ggplot(data = data_2, aes(x=X1, y=X2))+
+  geom_point(aes(shape = factor(y),color = factor(y)))+
+  labs(shape = 'y',color = 'y')+
+  ggtitle("Distribution of case two")
+```
+
+#Data generating process for once simulation with 50000 obs in case two
+```{r}
+###############Data generation process###The sample size can be change here according to my needs
+dgp_01 <- function(mean1,mean2){
+  sample_size <- 25000                                      
+  sample_meanvector <- c(mean1, mean1)                                   
+  sample_covariance_matrix <- matrix(c(2, 0, 0, 2),
+                                     ncol = 2)
+  sample_distribution <- mvrnorm(n = sample_size,
+                                 mu = sample_meanvector, 
+                                 Sigma = sample_covariance_matrix)
+  positive <- data.frame(sample_distribution)
+  positive['y'] <- rep(1,25000)
+  sample_meanvector <- c(mean2, mean2)#just need to change the mean, all the other are the same
+  sample_minus <- mvrnorm(n = sample_size,
+                          mu = sample_meanvector, 
+                          Sigma = sample_covariance_matrix)
+  negative <- data.frame(sample_minus)
+  negative['y'] <- rep(-1,25000)
+  data <- rbind(positive,negative)
+}
+```
+
+#Simulation once with 50000 obs in case two
+```{r}
+set.seed(111)
+data_roc <- dgp_01(2,3)
+sample <- sample.int(n = nrow(data_roc),size = floor(0.7*nrow(data_roc)),replace = F)
+train <- data_roc[sample,]
+test <- data_roc[-sample,]
+#See how does these algorithms work in first case"type = "prob"
+#decision tree
+rpart_train <- rpart(y ~ .,data = train, control = c(cp = 0, minsplit = 0),method ="class")
+rpart_predict <- predict(rpart_train,test,type = 'prob')
+rpart_predict_cl <- predict(rpart_train,test,type = 'class')
+length(rpart_predict)
+prob <- rpart_predict[,2]
+
+#random forest_50
+rf_train_50 <- randomForest(factor(y) ~ . , data = train, 
+                            mtry = 2 ,ntree = 50)# take all the predictors as sampled
+rf_predict_50 <- predict(rf_train_50,test,type = 'prob')
+rf_predict_50_cl <- predict(rf_train_50,test)
+
+prob_rf <- rf_predict_50[,2]
+#random forest_500
+tic("sleeping")
+rf_train_500 <- randomForest(factor(y) ~ . , data = train, 
+                             mtry = 2 ,ntree = 500)# take all the predictors as sampled
+rf_predict_500 <- predict(rf_train_500,test,type = 'prob')
+rf_predict_500_cl <- predict(rf_train_500, test)
+prob_rf_500 <- rf_predict_500[,2]
+toc()
+#adaboost
+tic("sleeping")
+train$y <- as.factor(train$y)#Need to change y as factor in advance
+ada_train <- boosting(y ~ ., train, boos=TRUE, mfinal=100)#Create 100 tree and using the weight to drawn
+ada_predict <- predict(ada_train,test)
+prob_ada <- ada_predict$prob[,2]
+prob_ada_cl <- ada_predict$class
+toc()
+#prune_tree
+model_pruned <- prune(rpart_train,cp=rpart_train$cptable[which.min(rpart_train$cptable[,"xerror"]),"CP"])
+pruned_predict <- predict(model_pruned,test,type = 'prob')
+pruned_predict_cl <- predict(model_pruned,test,type = 'class')
+prob_pruned <- pruned_predict[,2]
+```
+```{r}
+#######Plot the ROC graph(corresponding to the figure 15 in the term paper)
+#dev.off()
+par(pty = "s")
+#dev.set(dev.next())
+#par(mar=c(2.5,2.5,2,1),xpd=TRUE)
+#par(mar = c(4, 4, 4, 4)+.1,xpd =FALSE)
+#png("test.png", width = 480, height = 480)
+plot(roc(test$y,prob,levels = c(-1,1),direction = "<",identity.lty = 3),print.auc = TRUE, col = "blue",identity.lty = 2,
+     grid = TRUE,lwd = 2,xlim = c(1,0))
+plot(roc(test$y, prob_rf,levels = c(-1,1),direction = "<"), print.auc = TRUE,
+     col = "green", print.auc.y = .4, add = TRUE,lty=2,identity.lty = 2,lwd = 2)
+plot(roc(test$y, prob_ada,levels = c(-1,1),direction = "<"), print.auc = TRUE,
+     col = "red", print.auc.y = .3, add = TRUE,lty=3,identity.lty = 2,lwd = 2)
+plot(roc(test$y, prob_pruned,levels = c(-1,1),direction = "<"), print.auc = TRUE,
+     col = "black", print.auc.y = .2, add = TRUE,lty=4,identity.lty = 2,lwd = 2)
+plot(roc(test$y, prob_rf_500,levels = c(-1,1),direction = "<"), print.auc = TRUE,
+     col = "brown", print.auc.y = .1, add = TRUE,lty=5,identity.lty = 2,lwd = 2)
+legend("bottomleft", c("DT", "RF50","Ada","Pruned",'RF500'), lty = c(1,2,3,4,5), 
+       col = c("blue", "green",'red','black','brown'), bty="n", lwd = c(2,2,2,2,2),inset=c(0.69,0.5),y.intersp = 0.7,x.intersp = 0.05)
+title('ROC Curve', line = 2.5)
+```
+As we can observe, DT clearly has the lowest AUC compared with other algorithms. In contrast, pruned trees and Adaboost have relatively good performance. Compare with the previous case (case1), the pruned tree seems to improve more when the dataset is complex. If a dataset is simple, then pruned tree cannot make a great progression from an unpruned tree and the accuracy rate may also be lower than other algorithms. Additionally, Adaboost still performs very well in case two compare with other algorithms. The main drawback of Adaboost is that it is very sensitive to outliers. Because if the outliers are misclassified, then the weight of outliers would get larger. Fortunately, our dataset follows multivariate normal distribution, and the sigma is under control. Moreover, we have 50000 individuals, so I think the effect of outliers is mitigated. In other words, even if the weight of outliers goes larger, it is still very small in the end. Therefore, Adaboost still can have an excellent performance here.
+
+####Plot confusion matrix for case two(corresponding to the figure 16,17,18,19,20)
+```{r}
+confusion_matrix_train_tree <- table(actual = test$y, predicted = rpart_predict_cl)
+options(repr.plot.res = 250, repr.plot.height = 5, repr.plot.width = 5) 
+confusion_matrix_train_rf50 <- table(actual = test$y, predicted = rf_predict_50_cl)
+options(repr.plot.res = 250, repr.plot.height = 5, repr.plot.width = 5) 
+confusion_matrix_train_rf500 <- table(actual = test$y, predicted = rf_predict_500_cl)
+options(repr.plot.res = 250, repr.plot.height = 5, repr.plot.width = 5) 
+confusion_matrix_train_prune <- table(actual = test$y, predicted = pruned_predict_cl)
+options(repr.plot.res = 250, repr.plot.height = 5, repr.plot.width = 5) 
+confusion_matrix_train_ada <- table(actual = test$y, predicted = prob_ada_cl)
+options(repr.plot.res = 250, repr.plot.height = 5, repr.plot.width = 5) 
+
+suppressWarnings(
+  plot_confusion_matrix(as_tibble(confusion_matrix_train_tree), 
+                        target_col = "actual", 
+                        prediction_col = "predicted",
+                        counts_col = "n") +
+    ggtitle("Confusion matrix of DT ")
+)
+
+suppressWarnings(
+  plot_confusion_matrix(as_tibble(confusion_matrix_train_prune), 
+                        target_col = "actual", 
+                        prediction_col = "predicted",
+                        counts_col = "n") +
+    ggtitle("Confusion matrix of Pruned")
+)
+
+suppressWarnings(
+  plot_confusion_matrix(as_tibble(confusion_matrix_train_rf50), 
+                        target_col = "actual", 
+                        prediction_col = "predicted",
+                        counts_col = "n") +
+    ggtitle("Confusion matrix of rf50")
+)
+
+suppressWarnings(
+  plot_confusion_matrix(as_tibble(confusion_matrix_train_rf500), 
+                        target_col = "actual", 
+                        prediction_col = "predicted",
+                        counts_col = "n") +
+    ggtitle("Confusion matrix of rf500")
+)
+
+suppressWarnings(
+  plot_confusion_matrix(as_tibble(confusion_matrix_train_ada), 
+                        target_col = "actual", 
+                        prediction_col = "predicted",
+                        counts_col = "n") +
+    ggtitle("Confusion matrix of ada")
+)
+```
+To be more specific, pruned trees improve the full tree from roughly 63% accuracy rate to almost 70% accuracy rate. Conversely, the improvement of rf50 to rf500 is very limited, which only has a 0.1% accuracy rate increasing. Utami, I.T., et al (2014) also face a similar problem, which only increases by 0.12% as well. The main disadvantage of random forests is also very time demanding and when we make a prediction,effectiveness is also an important factor that we need to consider. Therefore, it seems not necessary need to used rf500 for insignificant improvement. 
+
+
+
+#Now change it to 1200 sample size for 1000 times simulation in case2
+```{r}
+dgp_01 <- function(mean1,mean2){
+  sample_size <- 600                                     
+  sample_meanvector <- c(mean1, mean1)                                   
+  sample_covariance_matrix <- matrix(c(2, 0, 0, 2),
+                                     ncol = 2)
+  sample_distribution <- mvrnorm(n = sample_size,
+                                 mu = sample_meanvector, 
+                                 Sigma = sample_covariance_matrix)
+  positive <- data.frame(sample_distribution)
+  positive['y'] <- rep(1,600)
+  sample_meanvector <- c(mean2, mean2)#just need to change the mean, all the other are the same
+  sample_minus <- mvrnorm(n = sample_size,
+                          mu = sample_meanvector, 
+                          Sigma = sample_covariance_matrix)
+  negative <- data.frame(sample_minus)
+  negative['y'] <- rep(-1,600)
+  data <- rbind(positive,negative)
+}
+```
+
+#simulation case 2 in 1000 times
+```{r echo = T, results = 'hide'}
+
+set.seed(666)
+T_iter <- 1000
+mis_class_tree_02 <- c()
+mis_class_prune_02 <- c()
+mis_class_ada_02 <- c()
+mis_class_rf_50_02 <- c()
+mis_class_rf_500_02 <- c()
+for (t in 1:T_iter){
+  data <- dgp_01(2,3)##Same dgp is used in dgp1 but change parameter
+  sample <- sample.int(n = nrow(data), size = floor(.7*nrow(data)), replace = F)
+  train <- data[sample, ]
+  test  <- data[-sample, ]
+  #Decision Tree
+  rpart_train <- rpart(y ~ .,data = train, control = c(cp = 0, minsplit = 0))
+  rpart_predict <- predict(rpart_train,test)
+  #Random Forest_50
+  rf_train_50 <- randomForest(factor(y) ~ . , data = train, 
+                              mtry = 2 ,ntree = 50)# take all the predictors as sampled
+  rf_predict_50 <- predict(rf_train_50,test)
+  #Random Forest_500
+  rf_train_500 <- randomForest(factor(y) ~ . , data = train, 
+                               mtry = 2 ,ntree = 500)# take all the predictors as sampled
+  rf_predict_500 <- predict(rf_train_500,test)
+  #Adaboost
+  train$y <- as.factor(train$y)#Need to change y as factor in advance
+  ada_train <- boosting(y ~ ., train, boos=TRUE, mfinal=100)#Create 100 tree and using the weight to drawn
+  ada_predict <- predict(ada_train,test)
+  ada_predict$class
+  #Pruned Tree
+  d.tree.param <- makeClassifTask(
+    data = train, 
+    target="y")
+  
+  param_grid_multi <- makeParamSet( 
+    makeNumericParam("cp", lower = 0.001, upper = 0.01))
+  
+  control_grid = makeTuneControlGrid()
+  resample = makeResampleDesc("CV", iters = 2L)
+  measure = acc
+  
+  dt_tuneparam <- tuneParams(learner="classif.rpart", 
+                             task=d.tree.param, 
+                             resampling = resample,
+                             measures = measure,
+                             par.set=param_grid_multi, 
+                             control=control_grid, 
+                             show.info = TRUE)
+  best_parameters = setHyperPars(
+    makeLearner("classif.rpart"), 
+    par.vals = dt_tuneparam$x
+  )
+  
+  
+  best_model = train(best_parameters, d.tree.param)
+  test$y <- as.factor(test$y)
+  d.tree.mlr.test <- makeClassifTask(
+    data=test, 
+    target="y")
+  results <- predict(best_model, task = d.tree.mlr.test)$data
+  accuracy_prune <- mean(results$response == results$truth)
+  
+  accuracy_tree <- c()
+  accuracy_rf_50 <- c()
+  accuracy_rf_500<-c()
+  accuracy_ada<-c()
+  
+  
+  for (i in 1:360){
+    if (rpart_predict[i] == test[i,'y']){
+      accuracy_tree[i] <- 1}
+    else{accuracy_tree[i] <- 0
+    }
+    if (rf_predict_50[i] == test[i,"y"]){
+      accuracy_rf_50[i] <- 1}
+    else{accuracy_rf_50[i] <- 0}
+    if (ada_predict$class[i] == test[i,"y"]){
+      accuracy_ada[i] <- 1}
+    else{accuracy_ada[i] <- 0}
+    if (rf_predict_500[i] == test[i,"y"]){
+      accuracy_rf_500[i] <- 1}
+    else{accuracy_rf_500[i]<-0}
+  }
+  
+  accuracy_rate_tree <- mean(accuracy_tree)
+  mis_class_tree_02[t] <- 1-accuracy_rate_tree
+  accuracy_rate_rf <- mean(accuracy_rf_50)
+  mis_class_rf_50_02[t] <- 1-accuracy_rate_rf
+  accuracy_rate_ada <- mean(accuracy_ada)
+  mis_class_ada_02[t] <- 1-accuracy_rate_ada
+  accuracy_rate_rf_500 <- mean(accuracy_rf_500)
+  mis_class_rf_500_02[t] <- 1-accuracy_rate_rf_500
+  mis_class_prune_02[t] <- 1-accuracy_prune
+}
+```
+
+
+```{r}
+#plot the box plot in case two#Correspond to figure 21 in the term paper
+boxplot(mis_class_tree_02, mis_class_rf_50_02, mis_class_rf_500_02,mis_class_ada_02,
+        mis_class_prune_02,names = c('DT','RF50','RF500','Ada','pruned'),
+        col=c('green','blue','red','brown','yellow'))
+title('simulation result')
+```
+```{r}
+#the outcome is case two#Correspond to table 10 in the term paper
+mean(mis_class_tree_02)
+mean(mis_class_rf_50_02)
+mean(mis_class_rf_500_02)
+mean(mis_class_ada_02)
+mean(mis_class_prune_02)
+sd(mis_class_tree_02)
+sd(mis_class_rf_50_02)
+sd(mis_class_rf_500_02)
+sd(mis_class_ada_02)
+sd(mis_class_prune_02)
+```
+From 1000 times simulation, the overfitting problem of DT makes it become a very inaccurate algorithm. My study also has a much higher inaccuracy rate than the one in (Utami, I.T., et al, 2014) in case2. Fortunately, pruning the tree let it become way much better, and the result is closed to the DT in the paper. Additionally, the misclassification rate of RF50 and RF500 is a little bit higher than the one in (Utami, I.T., et al ,2014). I think that except from control the number of trees in random forests, it is also possible to control the number of observations in the terminal node in each tree, which may help to further decrease the misclassification rate. Moreover, if I have more than two explanatory variables, it is very likely that the misclassification rate of random forest can decrease further by selecting partial predictors candidate.Besides, comparing Adaboost with random forest, it is more accurate, but S.D. is also larger. I think if a few outliers in each simulation can be canceled, then Adaboost may have a better accuracy rate with lower S.D. than random forest.
+
+
+#Case three(non-linear separable dataset)
+#Mutivariate normal distribution dataset from Utami, I.T., et al (2014)
+The case 3 dataset follow the multivariate normal distribution, and Utami,I.T.,et al(2014) set up the parameter like following:
+$$
+\mu_1 = 
+\begin{bmatrix}
+1\\
+1
+\end{bmatrix}\
+,
+\mu_2 = 
+\begin{bmatrix}
+1\\
+3
+\end{bmatrix}\
+,
+\mu_3 = 
+\begin{bmatrix}
+3\\
+3
+\end{bmatrix}\
+,
+\sigma_1 = \sigma_2= \sigma_3\ =
+\begin{bmatrix}
+1 & 0.7\\
+0.7 & 1
+\end{bmatrix}\
+
+$$
+In this case, μ1 is the mean for class +1 and μ2 and μ3 are the means for the -1 class. Each of μ1, μ2,and μ3 has 400 individuals so we have 1200 individuals in total as well.
+
+Here I want to visualize the dataset with 1200 obs which following the assumption in case two from Utami,I.T., et al(2014)
+```{r}
+set.seed(111)
+sample_size <- 400                                       
+sample_meanvector <- c(1, 1)                                   
+sample_covariance_matrix <- matrix(c(1, 0.7, 0.7, 1),
+                                   ncol = 2)
+
+# create bivariate normal distribution
+positive_distribution <- mvrnorm(n = sample_size,
+                                 mu = sample_meanvector, 
+                                 Sigma = sample_covariance_matrix)
+
+
+positive <- data.frame(positive_distribution)
+positive['y'] <- rep(1,400)
+
+sample_size <- 400                                       
+sample_meanvector <- c(1, 3)                                   
+sample_covariance_matrix <- matrix(c(1, 0.7, 0.7, 1),
+                                   ncol = 2)
+sample_minus_01 <- mvrnorm(n = sample_size,
+                        mu = sample_meanvector, 
+                        Sigma = sample_covariance_matrix)
+
+negative <- data.frame(sample_minus_01)
+negative['y'] <- rep(-1,400)
+
+sample_size <- 400                                       
+sample_meanvector <- c(3, 1)                                   
+sample_covariance_matrix <- matrix(c(1, 0.7, 0.7, 1),
+                                   ncol = 2)
+sample_minus_02 <- mvrnorm(n = sample_size,
+                           mu = sample_meanvector, 
+                           Sigma = sample_covariance_matrix)
+
+negative_02 <- data.frame(sample_minus_02)
+negative_02['y'] <- rep(-1,400)
+
+data_3 <- rbind(positive,negative,negative_02)
+```
+
+#Plot the dataset in case three#corresponding to figure 7 in the term paper
+```{r}
+library(ggplot2)
+ggplot(data = data_3, aes(x=X1, y=X2))+
+  geom_point(aes(shape = factor(y),color = factor(y)))+
+  labs(shape = 'y',color = 'y')+
+  ggtitle('Distribution in case three')
+```
+As we can see, in case 3, the observations cannot be classified correctly via a linear model.
+
+#Data generating process for case three
+```{r}
+dgp_03 <- function(N){
+  sample_size <- N                                       
+  sample_meanvector <- c(1, 1)                                   
+  sample_covariance_matrix <- matrix(c(1, 0.7, 0.7, 1),
+                                     ncol = 2)
+  positive_distribution <- mvrnorm(n = sample_size,
+                                   mu = sample_meanvector, 
+                                   Sigma = sample_covariance_matrix)
+  positive <- data.frame(positive_distribution)
+  positive['y'] <- rep(1,N)
+  sample_meanvector <- c(1, 3)
+  sample_minus_01 <- mvrnorm(n = sample_size,
+                             mu = sample_meanvector, 
+                             Sigma = sample_covariance_matrix)
+  negative <- data.frame(sample_minus_01)
+  negative['y'] <- rep(-1,N)
+  sample_meanvector <- c(3, 1)
+  sample_minus_02 <- mvrnorm(n = sample_size,
+                             mu = sample_meanvector, 
+                             Sigma = sample_covariance_matrix)
+  negative_02 <- data.frame(sample_minus_02)
+  negative_02['y'] <- rep(-1,N)
+  data <- rbind(positive,negative,negative_02)
+}
+```
+
+#Making prediction with 49998 obs(70% train 30% test)
+```{r}
+#enableJIT(3)
+library(fastAdaboost)
+set.seed(3)
+data_roc <- dgp_03(16666)
+sample <- sample.int(n = nrow(data_roc),size = floor(0.7*nrow(data_roc)),replace = F)
+train <- data_roc[sample,]
+test <- data_roc[-sample,]
+#See how does these algorithms work in first case
+#decision tree
+rpart_train <- rpart(y ~ .,data = train, control = c(cp = 0, minsplit = 0), method ="class")
+rpart_predict <- predict(rpart_train,test,type = "prob")
+rpart_predict_cl <- predict(rpart_train,test, type = "class")
+prob <- rpart_predict[,2]
+
+#random forest_50
+rf_train_50 <- randomForest(factor(y) ~ . , data = train, 
+                            mtry = 2 ,ntree = 50)# take all the predictors as sampled
+rf_predict_50 <- predict(rf_train_50,test,type = 'prob')
+rf_predict_50_cl <- predict(rf_train_50, test)
+prob_rf <- rf_predict_50[,2]
+#random forest_500
+rf_train_500 <- randomForest(factor(y) ~ . , data = train, 
+                             mtry = 2 ,ntree = 500)# take all the predictors as sampled
+rf_predict_500 <- predict(rf_train_500,test,type = 'prob')
+rf_predict_500_cl <- predict(rf_train_500, test)
+prob_rf_500 <- rf_predict_500[,2]
+
+#adaboost 
+train$y <- as.factor(train$y)#Need to change y as factor in advance
+ada_train <- adaboost(y ~ ., train, nIter = 100)#Create 100 tree and using the weight to drawn
+ada_predict <- predict(ada_train,test)
+prob_ada <- ada_predict$prob[,2]
+prob_ada_cl <- ada_predict$class
+#prune_tree
+model_pruned <- prune(rpart_train,cp=rpart_train$cptable[which.min(rpart_train$cptable[,"xerror"]),"CP"])
+pruned_predict <- predict(model_pruned,test,type = 'prob')
+pruned_predict_cl <- predict(model_pruned,test,type = "class")
+prob_pruned <- pruned_predict[,2]
+```
+
+#Roc curve graph#correspond to figure22 in the term paper
+```{r}
+#dev.off()
+#dev.set(dev.next())
+par(pty = "s")
+#par(mar=c(2.5,2.5,2,1),xpd=TRUE)
+#par(mar = c(4, 4, 4, 4)+.1,xpd =FALSE)
+#png("test.png", width = 480, height = 480)
+plot(roc(test$y,prob,levels = c(-1,1),direction = "<",identity.lty = 3),print.auc = TRUE, col = "blue",identity.lty = 2,
+     grid = TRUE,lwd = 2,xlim = c(1,0))
+plot(roc(test$y, prob_rf,levels = c(-1,1),direction = "<"), print.auc = TRUE,
+     col = "green", print.auc.y = .4, add = TRUE,lty=2,identity.lty = 2,lwd = 2)
+plot(roc(test$y, prob_ada,levels = c(-1,1),direction = "<"), print.auc = TRUE,
+     col = "red", print.auc.y = .3, add = TRUE,lty=3,identity.lty = 2,lwd = 2)
+plot(roc(test$y, prob_pruned,levels = c(-1,1),direction = "<"), print.auc = TRUE,
+     col = "black", print.auc.y = .2, add = TRUE,lty=4,identity.lty = 2,lwd = 2)
+plot(roc(test$y, prob_rf_500,levels = c(-1,1),direction = "<"), print.auc = TRUE,
+     col = "brown", print.auc.y = .1, add = TRUE,lty=5,identity.lty = 2,lwd = 2)
+legend("topright", c("DT", "RF50","Ada","Pruned",'RF500'), lty = c(1,2,3,4,5), 
+       col = c("blue", "green",'red','black','brown'), bty="n", lwd = c(4,2,2,4,2),inset=c(0.05,0.03),y.intersp = 1.4,x.intersp = 0.5)
+title('ROC Curve', line = 2.5)
+```
+For case 3 once simulation, I set up 16666 observations for +1 class and 33332 for -1, so totally there are 49998 observations, then it can be compared with case1 and 2(with 50000 observations). From figure 22, we can notice that all algorithms have a similar result. The serious overfitting problem of DT seems did not show up in this simulation way. The problem of random forest that taken into account all predictors for each tree seems did not cause a serious problem here as well, otherwise, it should be worse than the Adaboost result significantly, because of a large number of observations and under control sigma, Adaboost also should not be too sensitive to outliers like it usually do. Additionally, in general, the performance of each algorithm is better than in the previous case. Therefore, the non-linear dataset classification problem seems can be solved by these algorithms.
+
+#Bagging experiment confusion matrix with 49998 obs(70% train 30% test)(Correspond to figure 23,24,25,26,27 in the term paper)
+```{r}
+confusion_matrix_train_tree <- table(actual = test$y, predicted = rpart_predict_cl)
+options(repr.plot.res = 250, repr.plot.height = 5, repr.plot.width = 5) 
+confusion_matrix_train_rf50 <- table(actual = test$y, predicted = rf_predict_50_cl)
+options(repr.plot.res = 250, repr.plot.height = 5, repr.plot.width = 5) 
+confusion_matrix_train_rf500 <- table(actual = test$y, predicted = rf_predict_500_cl)
+options(repr.plot.res = 250, repr.plot.height = 5, repr.plot.width = 5) 
+confusion_matrix_train_prune <- table(actual = test$y, predicted = pruned_predict_cl)
+options(repr.plot.res = 250, repr.plot.height = 5, repr.plot.width = 5) 
+confusion_matrix_train_ada <- table(actual = test$y, predicted = prob_ada_cl)
+options(repr.plot.res = 250, repr.plot.height = 5, repr.plot.width = 5) 
+
+suppressWarnings(
+  plot_confusion_matrix(as_tibble(confusion_matrix_train_tree), 
+                        target_col = "actual", 
+                        prediction_col = "predicted",
+                        counts_col = "n") +
+    ggtitle("Confusion matrix of DT ")
+)
+
+suppressWarnings(
+  plot_confusion_matrix(as_tibble(confusion_matrix_train_prune), 
+                        target_col = "actual", 
+                        prediction_col = "predicted",
+                        counts_col = "n") +
+    ggtitle("Confusion matrix of Pruned")
+)
+
+suppressWarnings(
+  plot_confusion_matrix(as_tibble(confusion_matrix_train_rf50), 
+                        target_col = "actual", 
+                        prediction_col = "predicted",
+                        counts_col = "n") +
+    ggtitle("Confusion matrix of rf50")
+)
+
+suppressWarnings(
+  plot_confusion_matrix(as_tibble(confusion_matrix_train_rf500), 
+                        target_col = "actual", 
+                        prediction_col = "predicted",
+                        counts_col = "n") +
+    ggtitle("Confusion matrix of rf500")
+)
+
+suppressWarnings(
+  plot_confusion_matrix(as_tibble(confusion_matrix_train_ada), 
+                        target_col = "actual", 
+                        prediction_col = "predicted",
+                        counts_col = "n") +
+    ggtitle("Confusion matrix of ada")
+)
+```
+To be more specific, DT and pruned trees have 86.5% and 88.7% accuracy rates respectively. 
+Moreover, rf50, rf500, and Ada have 87.4% ,87.5% and 86.4% accuracy rate respectively.
+
+#Simulation study case 3 with 1000 times simulation
+```{r}
+set.seed(666)
+T_iter <- 1000
+mis_class_tree_03 <- c()
+mis_class_prune_03 <- c()
+mis_class_ada_03 <- c()
+mis_class_rf_50_03 <- c()
+mis_class_rf_500_03 <- c()
+for (t in 1:T_iter){
+  data <- dgp_03(400)
+  sample <- sample.int(n = nrow(data), size = floor(.7*nrow(data)), replace = F)
+  train <- data[sample, ]
+  test  <- data[-sample, ]
+  #Decision Tree
+  rpart_train <- rpart(y ~ .,data = train, control = c(cp = 0, minsplit = 0))
+  rpart_predict <- predict(rpart_train,test)
+  #Random Forest_50
+  rf_train_50 <- randomForest(factor(y) ~ . , data = train, 
+                              mtry = 2 ,ntree = 50)# take all the predictors as sampled
+  rf_predict_50 <- predict(rf_train_50,test)
+  #Random Forest_500
+  rf_train_500 <- randomForest(factor(y) ~ . , data = train, 
+                               mtry = 2 ,ntree = 500)# take all the predictors as sampled
+  rf_predict_500 <- predict(rf_train_500,test)
+  #Adaboost
+  train$y <- as.factor(train$y)#Need to change y as factor in advance
+  ada_train <- boosting(y ~ ., train, boos=TRUE, mfinal=100)#Create 100 tree and using the weight to drawn
+  ada_predict <- predict(ada_train,test)
+  ada_predict$class
+  #Pruned Tree
+  d.tree.param <- makeClassifTask(
+    data = train, 
+    target="y")
+  
+  param_grid_multi <- makeParamSet( 
+    makeNumericParam("cp", lower = 0.001, upper = 0.01))
+  
+  control_grid = makeTuneControlGrid()
+  resample = makeResampleDesc("CV", iters = 2L)
+  measure = acc
+  
+  dt_tuneparam <- tuneParams(learner="classif.rpart", 
+                             task=d.tree.param, 
+                             resampling = resample,
+                             measures = measure,
+                             par.set=param_grid_multi, 
+                             control=control_grid, 
+                             show.info = TRUE)
+  best_parameters = setHyperPars(
+    makeLearner("classif.rpart"), 
+    par.vals = dt_tuneparam$x
+  )
+  
+  
+  best_model = train(best_parameters, d.tree.param)
+  test$y <- as.factor(test$y)
+  d.tree.mlr.test <- makeClassifTask(
+    data=test, 
+    target="y")
+  results <- predict(best_model, task = d.tree.mlr.test)$data
+  accuracy_prune <- mean(results$response == results$truth)
+  
+  accuracy_tree <- c()
+  accuracy_rf_50 <- c()
+  accuracy_rf_500<-c()
+  accuracy_ada<-c()
+  
+  
+  for (i in 1:360){
+    if (rpart_predict[i] == test[i,'y']){
+      accuracy_tree[i] <- 1}
+    else{accuracy_tree[i] <- 0
+    }
+    if (rf_predict_50[i] == test[i,"y"]){
+      accuracy_rf_50[i] <- 1}
+    else{accuracy_rf_50[i] <- 0}
+    if (ada_predict$class[i] == test[i,"y"]){
+      accuracy_ada[i] <- 1}
+    else{accuracy_ada[i] <- 0}
+    if (rf_predict_500[i] == test[i,"y"]){
+      accuracy_rf_500[i] <- 1}
+    else{accuracy_rf_500[i]<-0}
+  }
+  
+  accuracy_rate_tree <- mean(accuracy_tree)
+  mis_class_tree_03[t] <- 1-accuracy_rate_tree
+  accuracy_rate_rf <- mean(accuracy_rf_50)
+  mis_class_rf_50_03[t] <- 1-accuracy_rate_rf
+  accuracy_rate_ada <- mean(accuracy_ada)
+  mis_class_ada_03[t] <- 1-accuracy_rate_ada
+  accuracy_rate_rf_500 <- mean(accuracy_rf_500)
+  mis_class_rf_500_03[t] <- 1-accuracy_rate_rf_500
+  mis_class_prune_03[t] <- 1-accuracy_prune
+}
+```
+
+#outcome for case3 1000 times simulation#correspond to table 11 in the term paper
+```{r}
+mean(mis_class_tree_03)
+mean(mis_class_rf_50_03)
+mean(mis_class_rf_500_03)
+mean(mis_class_ada_03)
+mean(mis_class_prune_03)
+sd(mis_class_tree_03)
+sd(mis_class_rf_50_03)
+sd(mis_class_rf_500_03)
+sd(mis_class_ada_03)
+sd(mis_class_prune_03)
+#box plot(correspond to the figure28 in the term paper)
+boxplot(mis_class_tree_03, mis_class_rf_50_03, mis_class_rf_500_03,mis_class_ada_03,
+        mis_class_prune_03,names = c('DT','RF50','RF500','Ada','pruned'),
+        col=c('green','blue','red','brown','yellow'))
+title('simulation result')
+```
+Next is the result from 1000 times simulation with 1200 observations each time. table 11 result is quite similar to the result from Utami, I.T., et al (2014). The difference between the pruned tree in my study and the one of DT result from Utami, I.T., et al (2014) is only 0.71% (so the difference in DT between my study and papers is still large) and the difference between bagging50, bagging500(from paper) and rf50, rf500(from my study) is only 0.43% and 0.39% respectively. Moreover, compared with case 2, seems all these algorithms perform well in linear non-separable data. Therefore, when facing real-world data which is non-linear separable, using a pruned tree, random forest and AdaBoost can be a clever choice. Among these algorithms, RF500 has the best performance, but its improvement from RF50 is still limited, so we can choose RF50 instead of RF500 to save time in case 3 similar datasets. Besides that, surprisingly, the pruned tree makes a progression from DT in case 3, which is different from the once simulation case. Therefore, we know that the overfitting problem is still an issue for case 3 1000 times simulation.
+
+#Bagging experiment(Correspond to the figure1 in the term paper)
+```{r}
+set.seed(1)
+data_test <- dgp_03(600)
+sample <- sample.int(n = nrow(data_test), size = floor(.7*nrow(data_test)), replace = F)
+train <- data_test[sample, ]
+test  <- data_test[-sample, ]
+rf_outcome <- c()
+accuracy_rf <- c()
+for (i in 1:200){
+  rf_train <- randomForest(factor(y) ~ . , data = train, 
+                              mtry = 2 ,ntree = i*10)# take all the predictors as sampled
+  rf_predict<- predict(rf_train,test)
+  for (k in 1:540){
+    if (rf_predict[k] == test[k,"y"]){
+      accuracy_rf[k] <- 1}
+    else{accuracy_rf[k] <- 0}
+  }
+  rf_outcome[i] <- mean(accuracy_rf)
+}
+
+test_x <- seq(1,200,by = 1)
+plot(test_x,rf_outcome,type = 'o', xlab = 'Number of Trees',ylab = "Accuracy rate")
+title('Bagging experiment')
+```
+
+#Conclusion
+In conclusion, there are several insights that we can observe from the previous study. Firstly, comparing case1, case2 and case3, these algorithms can almost perfectly make a correct prediction in case one, which is a linearly separable dataset. The AUC of most algorithms is 
+closed to 1 and the misclassification rate of most algorithms is below 1% as well. The second best performance case is in case 3 for all algorithms, which is a non-linear separable dataset. Finally, case2 has the worst performance, which is a linear non-perfectly separable dataset. Secondly, the accuracy rate of my decision tree is usually much lower than the one on paper in every case. I think it is because the tree in the paper is pruned tree, and the pruned tree makes a great progression from the unpruned tree in each case 1000 times simulation. 
+Thirdly, in case1 and case2, my accuracy rate of the pruned tree is even worse than the DT in the paper. I think the main reason is that I only take the complexity parameter into account when pruning, but there are still many other parameters that can be used to prune the tree to 
+increase the accuracy. Fourthly, in the case that dataset is hard to fit, the pruned tree seems to perform better. For instance, case 1 is a relatively easy fit dataset, but the pruned tree did not perform very well compare with boosting and bagging method. Contrary, case 2 is a relatively hard fit dataset, but the pruned tree has the best prediction outcome and makes a great progression from the unpruned tree. In other words, in a simple dataset with many observations, probably it is less important to prune the tree but for a dataset like a case 2 and only 840 training observations (70% of 1200), it becomes very necessary. Fifthly, Adaboost has a stable performance among these algorithms, because I think the drawbacks of AdaBoost, which is sensitive to outliers, did not be exposed in these three cases. Each case has 50000 observations and with the sigma that is under control, so the effects from the outliers and noise are mitigated. Sixthly, in all cases, the improvement of rf500 from rf50 is very limited. Therefore, it seems unnecessary to apply rf500 in this simulation study to save some calculation times. Seventhly, the overfitting problem seems more serious in the 1000 times simulation than once simulation with 50000 observations. Therefore, the improvement of the pruned tree is more significant in the 1000 times simulation. Eighthly, it is hard to say which algorithm is the best. In general, an unpruned tree has the worst performance. A pruned tree would have better performance in the complex dataset. Besides, because the quality of the dataset in each experiment is good, so the performance of Adaboost is also stable and accurate and the performance of random forest is also accurate and stable in each case.
+
+#Limitation
+1. There are only two predictors, so the random forest cannot randomly choose a part of the candidate predictors for a split.
+2. There is no comparison of different number of stumps for Adaboost.
+3. If the outliers are eliminated, then the Adaboost should have better performance in each case.
+4. The authors iterate the simulations 5000 times but I only iterate 1000 times.
+5. There are many other pruning parameters, but only cp is taken into account here.
+6. There are other pruning parameters for the random forest, but only the number of a tree is taken into account here.
+
+#Reference
+Utami, I. T. , Sartono, B. , & Sadik, K. (2014). Comparison of Single and Ensemble Classifiers of Support Vector Machine and Classification      Tree. Journal of Mathematical Sciences and Applications, 2(2), 17-20.
+Breiman,L. (2001). Random Forest. Machine Learning, 45, 5-32.https://doi.org/10.1023/A:1010933404324.
+Freund,Y., Schapire,R.E. (1996). Experiment with a New Boosting Algorithm. Machine Learning: Proceedings of the Thirteenth International         Conference.
+Khoshgoftaar, T.M., Hulse, J.V., & Napolitano, A. (2011). Comparing Boosting and Bagging Techniques With Noisy and Imbalanced Data. IEEE         Transactions on Systems, Man, and Cybernetics - Part A: Systems and Humans, 41, 552-568.
+Therneau, T.M., Atkinson, E.J., & Foundation, M. (2022). An Introduction to Recursive Partitioning Using RPART Routines.                         https://cran.rproject.org/web/packages/rpart/vignettes/longintro.pdf
+Sam, T. (2019). How does Decision Tree Make Decisions-The sample logic and math behind machine learning algorithm.
+  https://towardsdatascience.com/entropy-how-decision-trees-make-decisions-2946b9c18c8 
+Kurama, V. (2020). A Guide to Adaboost: Boosting To Save The Day.https://blog.paperspace.com/adaboost-optimizer/.
+Iba, W., & Langley, P. (1992). Induction of one-level decision trees. Proceedings of the Ninth International Conference on Machine Learning      (pp. 233–240). Morgan Kaufmann Publishers.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
